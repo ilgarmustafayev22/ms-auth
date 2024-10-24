@@ -14,7 +14,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -42,8 +41,8 @@ public class JwtCreator {
     public Claims extractAllClaims(String token) {
         Claims claims = Jwts
                 .parser()
-                .setSigningKey(PublicPrivateKeyUtils.KEY_PAIR.getPublic())
-                .verifyWith(PublicPrivateKeyUtils.KEY_PAIR.getPublic())
+                .setSigningKey(PublicPrivateKeyUtils.keyPair.getPublic())
+                .verifyWith(PublicPrivateKeyUtils.keyPair.getPublic())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -77,7 +76,7 @@ public class JwtCreator {
                 .expiration(new Date(System.currentTimeMillis() + (tokenType == TokenType.ACCESS ?
                         Long.parseLong(accessTokenExpiration) : Long.parseLong(refreshTokenExpiration))))
                 .and()
-                .signWith(PublicPrivateKeyUtils.KEY_PAIR.getPrivate(), SignatureAlgorithm.RS256)
+                .signWith(PublicPrivateKeyUtils.keyPair.getPrivate(), SignatureAlgorithm.RS256)
                 .compact();
     }
 
@@ -104,7 +103,7 @@ public class JwtCreator {
 
     private Claims extractClaim(String authToken) {
         return Jwts.parser()
-                .setSigningKey(PublicPrivateKeyUtils.KEY_PAIR.getPublic())
+                .setSigningKey(PublicPrivateKeyUtils.keyPair.getPublic())
                 .build()
                 .parseSignedClaims(authToken)
                 .getPayload();

@@ -9,14 +9,14 @@ import java.security.NoSuchAlgorithmException;
 @Component
 public class PublicPrivateKeyUtils {
 
-    public static KeyPairGenerator GENERATOR;
-    public static KeyPair KEY_PAIR;
+    public static KeyPairGenerator generator;
+    public static KeyPair keyPair;
 
     static {
         try {
-            GENERATOR = KeyPairGenerator.getInstance("RSA");
-            GENERATOR.initialize(2048);
-            KEY_PAIR = GENERATOR.generateKeyPair();
+            generator = KeyPairGenerator.getInstance("RSA");
+            generator.initialize(2048);
+            keyPair = generator.generateKeyPair();
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }

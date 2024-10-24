@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
 
-  postgres2:
+  postgresDB:
     image: postgres:latest
     container_name: postgresDB
     environment:
@@ -22,7 +22,7 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      - postgres2
+      - postgresDB
 
   redis:
     image: redis:6.0.7
