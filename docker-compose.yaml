@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+
+  postgres2:
+    image: postgres:latest
+    container_name: postgresDB
+    environment:
+      - POSTGRES_DB=ms-auth
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - db:/var/lib/postgres/data
+
+  qonaq-ol:
+    image: ms-auth
+    container_name: ms-auth
+    environment:
+      - HOST=postgres2
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres2
+
+  redis:
+    image: redis:6.0.7
+    container_name: redis
+    restart: always
+    volumes:
+      - redis_volume_data:/data
+    ports:
+      - 6379:6379
+  redis_insight:
+    image: redislabs/redisinsight:1.14.0
+    container_name: redis_insight
+    restart: always
+    ports:
+      - 8001:8001
+    volumes:
+      - redis_insight_volume_data:/db
+
+volumes:
+ redis_volume_data:
+ redis_insight_volume_data:
+ db:
+

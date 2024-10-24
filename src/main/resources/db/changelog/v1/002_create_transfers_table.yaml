@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002_create-transfers-table
+      author: Ilgar Mustafayev
+      changes:
+        - createTable:
+            tableName: transfers
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: from_account
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: to_account
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: DECIMAL(10,2)
+              - column:
+                  name: created_date
+                  type: TIMESTAMP(6)
+                  defaultValueComputed: now()
+
