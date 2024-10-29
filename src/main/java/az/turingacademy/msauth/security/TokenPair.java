@@ -13,7 +13,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 public class TokenPair implements Serializable {
 
-    public static final Long serialVersionUID = 1L;
+    public static final long serialVersionUID = 1L;
 
     private String accessToken;
     private String refreshToken;

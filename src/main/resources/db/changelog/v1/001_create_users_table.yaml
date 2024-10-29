@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 001_create-users-table
+      id: 001_create_users_table
       author: Ilgar Mustafayev
       changes:
         - createTable:
@@ -31,7 +31,11 @@ databaseChangeLog:
                   name: role
                   type: VARCHAR(20)
               - column:
-                  name: created_date
-                  type: TIMESTAMP(6)
+                  name: created_at
+                  type: TIMESTAMP(3)
+                  defaultValueComputed: now()
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(3)
                   defaultValueComputed: now()
 

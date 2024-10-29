@@ -19,17 +19,13 @@ public class SignupRequest {
     private String username;
 
     @NotBlank
-    @Size(max = 10, min = 8)
+    @Size(min = 8, max = 10)
     private String password;
 
     @Override
     public String toString() {
-        return new StringBuilder("SignupRequest{")
-                .append("fullName='").append(fullName).append('\'')
-                .append(", username='").append(username).append('\'')
-                .append(", password='").append("******").append('\'')
-                .append('}')
-                .toString();
+        return "{fullName='%s', username='%s', password='******'}"
+                .formatted(fullName, username);
     }
 
 }

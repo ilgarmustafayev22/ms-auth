@@ -1,4 +1,4 @@
-package az.turingacademy.msauth.service.impl;
+package az.turingacademy.msauth.service;
 
 
 import az.turingacademy.msauth.dao.entity.UserEntity;
@@ -11,8 +11,7 @@ import az.turingacademy.msauth.model.enums.TokenType;
 import az.turingacademy.msauth.model.enums.UserRole;
 import az.turingacademy.msauth.model.request.SigninRequest;
 import az.turingacademy.msauth.model.request.SignupRequest;
-import az.turingacademy.msauth.service.AuthenticationService;
-import az.turingacademy.msauth.service.UserService;
+import az.turingacademy.msauth.util.TokenUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,22 +23,21 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
-public class AuthenticationServiceImpl implements AuthenticationService {
+public class AuthService {
 
     private final JwtCreator jwtCreator;
     private final PasswordEncoder encoder;
-    private final UserService userService;
-    private final UserRepository repository;
+    private final UserRepository userRepository;
     private final AuthenticationManager authManager;
     private final RedisTemplate<String, String> redisTemplate;
 
-    @Override
     public void signup(SignupRequest signupRequest) {
-        if (userService.existsByUsername(signupRequest.getUsername()))
+        if (userRepository.existsByUsername(signupRequest.getUsername()))
             throw new UsernameAlreadyExistsException("User with username " + signupRequest.getUsername() + " already exists");
 
         var user = UserEntity.builder()
@@ -47,39 +45,41 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .username(signupRequest.getUsername())
                 .password(encoder.encode(signupRequest.getPassword()))
                 .role(UserRole.USER)
-                .createdDate(LocalDateTime.now())
+                .createdAt(LocalDateTime.now())
                 .build();
 
-        repository.save(user);
+        userRepository.save(user);
     }
 
-    @Override
     public TokenPair signin(SigninRequest signinRequest) {
         Authentication authenticate = authManager.authenticate
                 (
-                        new UsernamePasswordAuthenticationToken(
-                                signinRequest.getUsername(),
-                                signinRequest.getPassword()
-                        )
+                        new UsernamePasswordAuthenticationToken
+                                (
+                                        signinRequest.getUsername(),
+                                        signinRequest.getPassword()
+                                )
                 );
         return getTokenPair(authenticate);
     }
 
-    @Override
     public void signout(String authHeader) {
-        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String refreshToken = redisTemplate.opsForValue().get(authentication.getName());
-
-        if (refreshToken == null)
+        String jwtToken = TokenUtil.extractToken(authHeader);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new InvalidTokenException();
+        }
 
-        redisTemplate.delete(authentication.getName());
+        final String username = jwtCreator.extractUsername(jwtToken);
+        String refreshToken = redisTemplate.opsForValue().get(username);
+
+        redisTemplate.delete(username);
     }
 
-    @Override
-    public TokenPair refreshToken(String refreshToken, UserDetails userDetails) {
-        jwtCreator.isTokenValid(refreshToken, userDetails);
-        final Authentication authentication = jwtCreator.parseAuthentication(refreshToken, userDetails);
+    public TokenPair refreshToken(String refreshToken) {
+        if (jwtCreator.isTokenExpired(refreshToken))
+            throw new InvalidTokenException();
+
+        final Authentication authentication = jwtCreator.parseAuthentication(refreshToken);
         final TokenPair newTokenPair = getTokenPair(authentication);
         redisTemplate.opsForValue().set
                 (
@@ -90,7 +90,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return newTokenPair;
     }
 
-    protected TokenPair getTokenPair(Authentication authentication) {
+    private TokenPair getTokenPair(Authentication authentication) {
         TokenPair tokenResponse = new TokenPair();
         tokenResponse.setAccessToken(jwtCreator.generateToken(authentication, TokenType.ACCESS));
         tokenResponse.setRefreshToken(jwtCreator.generateToken(authentication, TokenType.REFRESH));

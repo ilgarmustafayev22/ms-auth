@@ -1,22 +1,56 @@
 package az.turingacademy.msauth.service;
 
-
+import az.turingacademy.msauth.dao.entity.UserEntity;
+import az.turingacademy.msauth.dao.repository.UserRepository;
+import az.turingacademy.msauth.exception.UserNotFoundException;
+import az.turingacademy.msauth.mapper.UserMapper;
 import az.turingacademy.msauth.model.dto.UserDto;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-public interface UserService {
+@Service
+@RequiredArgsConstructor
+public class UserService {
 
-    UserDto findUserByUsername(String username);
+    private final UserMapper userMapper;
+    private final UserRepository userRepository;
 
-    List<UserDto> findAllUsers();
+    public UserDto findByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .map(userMapper::toDto)
+                .orElseThrow(() -> new UserNotFoundException("User not found with username " + username));
+    }
 
-    UserDto findById(Long id);
+    public List<UserDto> findAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
+    }
 
-    UserDto save(UserDto userDto);
+    public UserDto findById(Long id) {
+        return userRepository.findById(id)
+                .map(userMapper::toDto)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id " + id));
+    }
 
-    void deleteUser(Long id);
+    @Transactional
+    public UserDto save(UserDto userDto) {
+        UserEntity userEntity = userMapper.toEntity(userDto);
+        return userMapper.toDto(userRepository.save(userEntity));
+    }
 
-    boolean existsByUsername(String username);
+    @Transactional
+    public void deleteUser(Long id) {
+        userRepository.deleteById(id);
+    }
+
+    public boolean existsByUsername(final String username) {
+        return userRepository.existsByUsername(username);
+    }
 
 }

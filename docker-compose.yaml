@@ -1,28 +1,28 @@
 version: '3.8'
 
 services:
-
-  postgresDB:
+  db_auth:
     image: postgres:latest
-    container_name: postgresDB
+    container_name: db_auth_postgres
     environment:
       - POSTGRES_DB=ms-auth
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=mysecretpassword
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - db:/var/lib/postgres/data
 
-  qonaq-ol:
+  ms-auth:
     image: ms-auth
     container_name: ms-auth
     environment:
-      - HOST=postgres2
+      - HOST=db_auth_postgres
     ports:
-      - "8081:8081"
+      - "8080:8080"
     depends_on:
-      - postgresDB
+      - db_auth
+      - redis
 
   redis:
     image: redis:6.0.7
@@ -31,7 +31,7 @@ services:
     volumes:
       - redis_volume_data:/data
     ports:
-      - 6379:6379
+      - "6379:6379"
   redis_insight:
     image: redislabs/redisinsight:1.14.0
     container_name: redis_insight
@@ -41,8 +41,45 @@ services:
     volumes:
       - redis_insight_volume_data:/db
 
+  vault:
+    image: vault:1.13.3
+    container_name: vault
+    ports:
+      - "8200:8200"
+    restart: always
+    volumes:
+      - ./volumes/logs:/vault/logs
+      - ./volumes/file:/vault/file
+      - ./volumes/config:/vault/config
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_ADDR: http://127.0.0.1:8200
+    entrypoint: vault server -config=/vault/config/vault.json
+
+  sonarqube:
+    image: sonarqube:lts
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://db_sonar:5432/sonarqube
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
+
+  db_sonar:
+    image: postgres:latest
+    container_name: sonarqube_db
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonarqube
+    ports:
+      - "5434:5432"
+
 volumes:
- redis_volume_data:
- redis_insight_volume_data:
- db:
+  redis_volume_data:
+  redis_insight_volume_data:
+  db:
+
 

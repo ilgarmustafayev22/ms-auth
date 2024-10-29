@@ -2,12 +2,13 @@ package az.turingacademy.msauth.security.jwt;
 
 import az.turingacademy.msauth.dao.entity.UserEntity;
 import az.turingacademy.msauth.model.enums.TokenType;
-import az.turingacademy.msauth.util.PublicPrivateKeyUtils;
+import az.turingacademy.msauth.security.JwtProperties;
+import az.turingacademy.msauth.config.KeyPair;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -24,15 +25,14 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class JwtCreator {
 
     private static final List<GrantedAuthority> AUTHORITIES = List.of(new SimpleGrantedAuthority("USER"));
 
-    @Value("${application.security.jwt.expiration}")
-    private String accessTokenExpiration;
+    private final JwtProperties jwtProperties;
 
-    @Value("${application.security.jwt.refresh-token.expiration}")
-    private String refreshTokenExpiration;
+    private final KeyPair keyPair;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -41,8 +41,8 @@ public class JwtCreator {
     public Claims extractAllClaims(String token) {
         Claims claims = Jwts
                 .parser()
-                .setSigningKey(PublicPrivateKeyUtils.keyPair.getPublic())
-                .verifyWith(PublicPrivateKeyUtils.keyPair.getPublic())
+                .setSigningKey(keyPair.getPublicKey())
+                .verifyWith(keyPair.getPublicKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -74,9 +74,10 @@ public class JwtCreator {
                 .subject(principal.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + (tokenType == TokenType.ACCESS ?
-                        Long.parseLong(accessTokenExpiration) : Long.parseLong(refreshTokenExpiration))))
+                        Long.parseLong(jwtProperties.getAccessTokenExpiration()) :
+                        Long.parseLong(jwtProperties.getRefreshTokenExpiration()))))
                 .and()
-                .signWith(PublicPrivateKeyUtils.keyPair.getPrivate(), SignatureAlgorithm.RS256)
+                .signWith(keyPair.getPrivateKey(), SignatureAlgorithm.RS256)
                 .compact();
     }
 
@@ -84,18 +85,13 @@ public class JwtCreator {
         return generateToken(new HashMap<>(), authentication, tokenType);
     }
 
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
-    }
-
     public boolean isTokenExpired(String token) {
         Date exp = extractClaim(token, Claims::getExpiration);
         return exp.before(new Date());
     }
 
-    public Authentication parseAuthentication(String authToken, UserDetails userDetails) {
-        isTokenValid(authToken, userDetails);
+    public Authentication parseAuthentication(String authToken) {
+        isTokenExpired(authToken);
         final Claims claims = extractClaim(authToken);
         final UserDetails principal = getPrincipal(claims);
         return new UsernamePasswordAuthenticationToken(principal, authToken, AUTHORITIES);
@@ -103,7 +99,7 @@ public class JwtCreator {
 
     private Claims extractClaim(String authToken) {
         return Jwts.parser()
-                .setSigningKey(PublicPrivateKeyUtils.keyPair.getPublic())
+                .setSigningKey(keyPair.getPublicKey())
                 .build()
                 .parseSignedClaims(authToken)
                 .getPayload();

@@ -1,16 +1,29 @@
 server:
-  port: 8081
+  port: 8080
   servlet:
     context-path: /ms-auth
-  forward-headers-strategy: framework
 
 spring:
+  config:
+    import: optional:vault://
+  cloud:
+    vault:
+      enabled: true
+      uri: http://localhost:8200
+      authentication: token
+      token: hvs.FHukiOCJtfHRJlYd2Namd9yp
+      kv:
+        enabled: true
+        default-context: jwt
+        backend: ms-auth
+
   application:
     liquibase:
       change-log: classpath:db/changelog/db.changelog-master.yaml
+
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:postgresql://${HOST:localhost}:5432/${POSTGRES_DB:ms-auth}
+    url: jdbc:postgresql://${HOST:localhost}:5433/${POSTGRES_DB:ms-auth}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:mysecretpassword}
     driver-class-name: org.postgresql.Driver
@@ -28,7 +41,7 @@ spring:
 
   data:
     redis:
-      host: localhost
+      host: redis
       port: 6379
 
 logging:
@@ -44,9 +57,7 @@ springdoc:
 application:
   security:
     jwt:
-      expiration: 3600000
-      refresh-token:
-        expiration: 86400000
-
-  
-
+      private-key: ${ms-auth.jwt.private-key}
+      public-key: ${ms-auth.jwt.public-key}
+      access-token-expiration: 3600000
+      refresh-token-expiration: 86400000

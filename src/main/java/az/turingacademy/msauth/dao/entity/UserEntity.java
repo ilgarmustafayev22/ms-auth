@@ -3,6 +3,7 @@ package az.turingacademy.msauth.dao.entity;
 import az.turingacademy.msauth.model.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,15 +16,11 @@ import java.util.Objects;
 @Getter
 @Setter
 @Entity
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
 @Table(name = "users")
-public class UserEntity implements UserDetails {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@ToString(callSuper = true, exclude = {"password"})
+public class UserEntity extends BaseEntity implements UserDetails {
 
     @Column(name = "full_name", nullable = false)
     private String fullName;
@@ -37,9 +34,6 @@ public class UserEntity implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
     private UserRole role;
-
-    @Column(name = "created_date")
-    private LocalDateTime createdDate;
 
     public UserEntity(String username, String fullName, String userRole) {
         this.username = username;
@@ -87,18 +81,7 @@ public class UserEntity implements UserDetails {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), username);
-    }
-
-    @Override
-    public String toString() {
-        return new StringBuilder("User{")
-                .append("id=").append(getId())
-                .append(", fullName='").append(fullName).append('\'')
-                .append(", username='").append(username).append('\'')
-                .append(", role=").append(role)
-                .append('}')
-                .toString();
+        return Objects.hash(super.hashCode(), username, fullName, password, role);
     }
 
 }
