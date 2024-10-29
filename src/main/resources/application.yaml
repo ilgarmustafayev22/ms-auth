@@ -11,7 +11,7 @@ spring:
       enabled: true
       uri: http://localhost:8200
       authentication: token
-      token: hvs.FHukiOCJtfHRJlYd2Namd9yp
+      token: ${TOKEN}
       kv:
         enabled: true
         default-context: jwt
